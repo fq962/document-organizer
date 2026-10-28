@@ -5,7 +5,31 @@ import { createClient } from "@/lib/supabase/client";
 import { STORAGE_BUCKET } from "@/lib/supabase/schema";
 import type { Doc, Folder } from "./types";
 
-const HUES = [95, 140, 45, 25, 180, 205, 275, 340];
+// Paleta de tonos bien separados entre sí para las ramas de la raíz.
+const HUES = [140, 25, 205, 45, 275, 180, 340, 95, 310, 60];
+
+const hueDistance = (a: number, b: number) => {
+  const d = Math.abs(a - b) % 360;
+  return Math.min(d, 360 - d);
+};
+
+/**
+ * Tono para una carpeta nueva colgada de la raíz: el de la paleta que más se
+ * aleja de los que ya usan la raíz y sus otras carpetas, para que cada rama
+ * se distinga a simple vista.
+ */
+function distinctHue(used: number[]) {
+  let best = HUES[0];
+  let bestDistance = -1;
+  for (const hue of HUES) {
+    const nearest = Math.min(...used.map((u) => hueDistance(hue, u)), 180);
+    if (nearest > bestDistance) {
+      best = hue;
+      bestDistance = nearest;
+    }
+  }
+  return best;
+}
 const NEW_FOLDER_NAME = "Nueva carpeta";
 // Duración de los enlaces firmados (el bucket es privado).
 const OPEN_URL_TTL = 60;
@@ -32,6 +56,21 @@ export function descendantIds(folders: Folder[], id: string): Set<string> {
     }
   }
   return ids;
+}
+
+/**
+ * Las carpetas creadas en la raíz reciben un color propio; dentro de una rama,
+ * las subcarpetas heredan el color de su carpeta padre.
+ */
+function hueFor(folders: Folder[], parentId: string, requested?: number) {
+  const parent = folders.find((f) => f.id === parentId);
+  if (parent?.isRoot) {
+    const used = folders
+      .filter((f) => f.id === parentId || f.parentId === parentId)
+      .map((f) => f.hue);
+    return distinctHue(used);
+  }
+  return requested ?? parent?.hue ?? HUES[0];
 }
 
 /** "Nueva carpeta", "Nueva carpeta 2"… sin chocar con el índice único. */
@@ -107,7 +146,7 @@ export function useOrganizerStore({
           current.filter((f) => f.parentId === parentId),
         ),
         parentId,
-        hue: hue ?? HUES[current.length % HUES.length],
+        hue: hueFor(current, parentId, hue),
         isRoot: false,
       };
       // Inmediato, por si se crea otra antes del siguiente render.
