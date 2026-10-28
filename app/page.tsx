@@ -1,7 +1,5 @@
+import { Organizer } from "./_components/organizer";
+
 export default function Home() {
-  return (
-    <main className="flex flex-1 items-center justify-center">
-      <h1 className="text-2xl font-semibold">Document Organizer</h1>
-    </main>
-  );
+  return <Organizer />;
 }
