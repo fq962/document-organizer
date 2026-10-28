@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FolderSidebar } from "./folder-sidebar";
 import { DropArea } from "./drop-area";
 import type { Doc, Folder } from "./types";
@@ -34,6 +34,22 @@ export function Organizer() {
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [selectedId, setSelectedId] = useState(ROOT_ID);
+  // Drawer de carpetas en móvil; en desktop la barra siempre está visible.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const selectFolder = useCallback((id: string) => {
+    setSelectedId(id);
+    setDrawerOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [drawerOpen]);
 
   const addFiles = useCallback((files: FileList | File[], folderId: string) => {
     const added: Doc[] = Array.from(files).map((file) => ({
@@ -62,22 +78,19 @@ export function Organizer() {
     });
   }, []);
 
-  const createFolder = useCallback(
-    (parentId: string) => {
-      const id = crypto.randomUUID();
-      setFolders((prev) => [
-        ...prev,
-        {
-          id,
-          name: "Nueva carpeta",
-          parentId,
-          hue: HUES[prev.length % HUES.length],
-        },
-      ]);
-      return id;
-    },
-    [],
-  );
+  const createFolder = useCallback((parentId: string, hue?: number) => {
+    const id = crypto.randomUUID();
+    setFolders((prev) => [
+      ...prev,
+      {
+        id,
+        name: "Nueva carpeta",
+        parentId,
+        hue: hue ?? HUES[prev.length % HUES.length],
+      },
+    ]);
+    return id;
+  }, []);
 
   const renameFolder = useCallback((id: string, name: string) => {
     setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
@@ -103,6 +116,10 @@ export function Organizer() {
   );
 
   const selected = folders.find((f) => f.id === selectedId) ?? folders[0];
+  const selectedDocs = useMemo(
+    () => docs.filter((d) => d.folderId === selected.id),
+    [docs, selected.id],
+  );
 
   return (
     <div className="flex h-dvh overflow-hidden">
@@ -111,20 +128,24 @@ export function Organizer() {
         docs={docs}
         rootId={ROOT_ID}
         selectedId={selected.id}
-        onSelect={setSelectedId}
+        onSelect={selectFolder}
         onCreate={createFolder}
         onRename={renameFolder}
         onDelete={deleteFolder}
         onDropFiles={addFiles}
         onMoveDoc={moveDoc}
+        mobileOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
       />
       <DropArea
         folder={selected}
         folders={folders}
-        docs={docs.filter((d) => d.folderId === selected.id)}
+        docs={selectedDocs}
         onSelectFolder={setSelectedId}
         onAddFiles={addFiles}
         onRemoveDoc={removeDoc}
+        onMoveDoc={moveDoc}
+        onOpenFolders={() => setDrawerOpen(true)}
       />
     </div>
   );
