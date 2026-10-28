@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FolderSidebar } from "./folder-sidebar";
 import { DropArea } from "./drop-area";
+import type { CurrentUser } from "@/lib/auth";
 import type { Doc, Folder } from "./types";
 
 const ROOT_ID = "root";
@@ -30,7 +31,7 @@ function descendantIds(folders: Folder[], id: string): Set<string> {
   return ids;
 }
 
-export function Organizer() {
+export function Organizer({ user }: { user: CurrentUser }) {
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [selectedId, setSelectedId] = useState(ROOT_ID);
@@ -134,6 +135,7 @@ export function Organizer() {
         onDelete={deleteFolder}
         onDropFiles={addFiles}
         onMoveDoc={moveDoc}
+        user={user}
         mobileOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       />

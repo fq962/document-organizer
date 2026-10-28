@@ -9,7 +9,9 @@ import {
   TouchDragGhost,
   useTouchDocDrag,
 } from "./touch-drag";
+import type { CurrentUser } from "@/lib/auth";
 import { DOC_DRAG_TYPE, splitName, type Doc, type Folder } from "./types";
+import { UserMenu } from "./user-menu";
 
 type Props = {
   folders: Folder[];
@@ -25,6 +27,7 @@ type Props = {
 };
 
 type SidebarProps = Props & {
+  user: CurrentUser;
   /** Solo en móvil: la barra es un drawer que se abre sobre el contenido. */
   mobileOpen: boolean;
   onClose: () => void;
@@ -113,6 +116,7 @@ export function FolderSidebar({
   docs,
   rootId,
   onCreate,
+  user,
   mobileOpen,
   onClose,
   ...actions
@@ -247,6 +251,7 @@ export function FolderSidebar({
               onEdit={setEditingId}
               onCreateChild={create}
             />
+            <UserMenu user={user} />
           </aside>
         </OverlayRootContext>
         <div
