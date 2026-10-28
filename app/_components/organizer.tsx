@@ -1,40 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { FolderSidebar } from "./folder-sidebar";
 import { DropArea } from "./drop-area";
+import { useOrganizerStore } from "./use-organizer-store";
 import type { CurrentUser } from "@/lib/auth";
-import type { Doc, Folder } from "./types";
+import type { OrganizerData } from "@/lib/organizer-data";
 
-const ROOT_ID = "root";
-const HUES = [95, 140, 45, 25, 180, 205, 275, 340];
+const ERROR_TIMEOUT_MS = 6000;
 
-const initialFolders: Folder[] = [
-  { id: ROOT_ID, name: "Mis documentos", parentId: null, hue: 95 },
-  { id: "trabajo", name: "Trabajo", parentId: ROOT_ID, hue: 140 },
-  { id: "personal", name: "Personal", parentId: ROOT_ID, hue: 45 },
-  { id: "facturas", name: "Facturas", parentId: "personal", hue: 25 },
-];
-
-function descendantIds(folders: Folder[], id: string): Set<string> {
-  const ids = new Set([id]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const f of folders) {
-      if (f.parentId && ids.has(f.parentId) && !ids.has(f.id)) {
-        ids.add(f.id);
-        grew = true;
-      }
-    }
-  }
-  return ids;
-}
-
-export function Organizer({ user }: { user: CurrentUser }) {
-  const [folders, setFolders] = useState<Folder[]>(initialFolders);
-  const [docs, setDocs] = useState<Doc[]>([]);
-  const [selectedId, setSelectedId] = useState(ROOT_ID);
+export function Organizer({
+  user,
+  data,
+}: {
+  user: CurrentUser;
+  data: OrganizerData;
+}) {
+  const store = useOrganizerStore({
+    userId: user.id,
+    initialFolders: data.folders,
+    initialDocs: data.docs,
+  });
+  const { folders, docs, error, dismissError } = store;
+  const [selectedId, setSelectedId] = useState(data.rootId);
   // Drawer de carpetas en móvil; en desktop la barra siempre está visible.
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -52,71 +41,16 @@ export function Organizer({ user }: { user: CurrentUser }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [drawerOpen]);
 
-  const addFiles = useCallback((files: FileList | File[], folderId: string) => {
-    const added: Doc[] = Array.from(files).map((file) => ({
-      id: crypto.randomUUID(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      folderId,
-      addedAt: Date.now(),
-      url: URL.createObjectURL(file),
-    }));
-    setDocs((prev) => [...added, ...prev]);
-  }, []);
+  useEffect(() => {
+    if (!error) return;
+    const timer = window.setTimeout(dismissError, ERROR_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [error, dismissError]);
 
-  const moveDoc = useCallback((docId: string, folderId: string) => {
-    setDocs((prev) =>
-      prev.map((d) => (d.id === docId ? { ...d, folderId } : d)),
-    );
-  }, []);
-
-  const removeDoc = useCallback((docId: string) => {
-    setDocs((prev) => {
-      const doc = prev.find((d) => d.id === docId);
-      if (doc) URL.revokeObjectURL(doc.url);
-      return prev.filter((d) => d.id !== docId);
-    });
-  }, []);
-
-  const createFolder = useCallback((parentId: string, hue?: number) => {
-    const id = crypto.randomUUID();
-    setFolders((prev) => [
-      ...prev,
-      {
-        id,
-        name: "Nueva carpeta",
-        parentId,
-        hue: hue ?? HUES[prev.length % HUES.length],
-      },
-    ]);
-    return id;
-  }, []);
-
-  const renameFolder = useCallback((id: string, name: string) => {
-    setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
-  }, []);
-
-  const deleteFolder = useCallback(
-    (id: string) => {
-      if (id === ROOT_ID) return;
-      const ids = descendantIds(folders, id);
-      setFolders((prev) => prev.filter((f) => !ids.has(f.id)));
-      setDocs((prev) =>
-        prev.filter((d) => {
-          if (!ids.has(d.folderId)) return true;
-          URL.revokeObjectURL(d.url);
-          return false;
-        }),
-      );
-      if (ids.has(selectedId)) {
-        setSelectedId(folders.find((f) => f.id === id)?.parentId ?? ROOT_ID);
-      }
-    },
-    [folders, selectedId],
-  );
-
-  const selected = folders.find((f) => f.id === selectedId) ?? folders[0];
+  // Si la carpeta seleccionada se elimina, se vuelve a la raíz.
+  const selected =
+    folders.find((f) => f.id === selectedId) ??
+    folders.find((f) => f.id === data.rootId)!;
   const selectedDocs = useMemo(
     () => docs.filter((d) => d.folderId === selected.id),
     [docs, selected.id],
@@ -127,14 +61,14 @@ export function Organizer({ user }: { user: CurrentUser }) {
       <FolderSidebar
         folders={folders}
         docs={docs}
-        rootId={ROOT_ID}
+        rootId={data.rootId}
         selectedId={selected.id}
         onSelect={selectFolder}
-        onCreate={createFolder}
-        onRename={renameFolder}
-        onDelete={deleteFolder}
-        onDropFiles={addFiles}
-        onMoveDoc={moveDoc}
+        onCreate={store.createFolder}
+        onRename={store.renameFolder}
+        onDelete={store.deleteFolder}
+        onDropFiles={store.addFiles}
+        onMoveDoc={store.moveDoc}
         user={user}
         mobileOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -144,11 +78,34 @@ export function Organizer({ user }: { user: CurrentUser }) {
         folders={folders}
         docs={selectedDocs}
         onSelectFolder={setSelectedId}
-        onAddFiles={addFiles}
-        onRemoveDoc={removeDoc}
-        onMoveDoc={moveDoc}
+        onAddFiles={store.addFiles}
+        onRemoveDoc={store.removeDoc}
+        onMoveDoc={store.moveDoc}
+        onOpenDoc={store.openDoc}
         onOpenFolders={() => setDrawerOpen(true)}
       />
+
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            key="error"
+            role="alert"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[80] mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-[#3a2a26] px-4 py-3 text-sm shadow-xl shadow-black/40 ring-1 ring-red-300/30"
+          >
+            <p className="flex-1">{error}</p>
+            <button
+              onClick={dismissError}
+              aria-label="Cerrar"
+              className="-m-1 rounded-full p-1 leading-none opacity-70 hover:opacity-100"
+            >
+              ×
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

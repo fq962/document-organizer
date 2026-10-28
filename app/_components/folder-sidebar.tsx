@@ -122,7 +122,7 @@ export function FolderSidebar({
   ...actions
 }: SidebarProps) {
   const [expanded, setExpanded] = useState<Set<string>>(
-    () => new Set([rootId, "personal"]),
+    () => new Set([rootId]),
   );
   const [editingId, setEditingId] = useState<string | null>(null);
 

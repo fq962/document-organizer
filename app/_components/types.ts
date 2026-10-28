@@ -3,6 +3,7 @@ export type Folder = {
   name: string;
   parentId: string | null;
   hue: number;
+  isRoot: boolean;
 };
 
 export type Doc = {
@@ -12,7 +13,12 @@ export type Doc = {
   type: string;
   folderId: string;
   addedAt: number;
-  url: string;
+  /** Ruta del archivo en el bucket de Storage: "<user_id>/<doc_id>". */
+  storagePath: string;
+  /** Mientras se sube a Storage. */
+  uploading?: boolean;
+  /** Vista previa local (object URL) de archivos subidos en esta sesión. */
+  localUrl?: string;
 };
 
 // Tipo MIME usado para arrastrar documentos internos entre carpetas,

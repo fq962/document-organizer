@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { FOLDER_ATTR, TouchDragGhost, useTouchDocDrag } from "./touch-drag";
+import { useImagePreviews } from "./use-organizer-store";
 import { DOC_DRAG_TYPE, splitName, type Doc, type Folder } from "./types";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   onAddFiles: (files: FileList, folderId: string) => void;
   onRemoveDoc: (id: string) => void;
   onMoveDoc: (docId: string, folderId: string) => void;
+  onOpenDoc: (doc: Doc) => void;
   onOpenFolders: () => void;
 };
 
@@ -65,8 +67,10 @@ export function DropArea({
   onAddFiles,
   onRemoveDoc,
   onMoveDoc,
+  onOpenDoc,
   onOpenFolders,
 }: Props) {
+  const previewUrl = useImagePreviews(docs);
   // Contador para que el overlay no parpadee al pasar sobre elementos hijos.
   const dragDepth = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -218,6 +222,8 @@ export function DropArea({
                 doc={doc}
                 onRemove={onRemoveDoc}
                 onMove={onMoveDoc}
+                onOpen={onOpenDoc}
+                previewUrl={previewUrl(doc)}
               />
             ))}
           </ul>
@@ -239,10 +245,14 @@ function DocCard({
   doc,
   onRemove,
   onMove,
+  onOpen,
+  previewUrl,
 }: {
   doc: Doc;
   onRemove: (id: string) => void;
   onMove: (docId: string, folderId: string) => void;
+  onOpen: (doc: Doc) => void;
+  previewUrl: string | undefined;
 }) {
   const { ref, handlers, isActive, dragging, x, y } = useTouchDocDrag(
     doc.id,
@@ -253,28 +263,30 @@ function DocCard({
     <li
       ref={ref as React.RefObject<HTMLLIElement>}
       {...handlers}
-      draggable
+      // Mientras se sube no existe en la base: no se puede mover ni borrar.
+      draggable={!doc.uploading}
       onDragStart={(e) => {
-        if (isActive()) return e.preventDefault();
+        if (isActive() || doc.uploading) return e.preventDefault();
         e.dataTransfer.setData(DOC_DRAG_TYPE, doc.id);
         e.dataTransfer.effectAllowed = "move";
       }}
+      aria-busy={doc.uploading}
       style={{ WebkitTouchCallout: "none" }}
       className={`group relative flex cursor-grab flex-col overflow-hidden rounded-2xl bg-black/20 shadow-sm shadow-black/20 transition select-none hover:-translate-y-0.5 hover:bg-black/30 active:cursor-grabbing ${
         dragging ? "scale-95 opacity-40" : ""
       }`}
     >
-      <a
-        href={doc.url}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        type="button"
+        onClick={() => onOpen(doc)}
+        aria-label={`Abrir ${doc.name}`}
         draggable={false}
-        className="flex aspect-[4/3] items-center justify-center bg-white/5"
+        className="relative flex aspect-[4/3] items-center justify-center bg-white/5"
       >
-        {doc.type.startsWith("image/") ? (
-          // eslint-disable-next-line @next/next/no-img-element -- blob: URL local, next/image no aplica
+        {doc.type.startsWith("image/") && previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage o blob: local; next/image no aplica
           <img
-            src={doc.url}
+            src={previewUrl}
             alt=""
             draggable={false}
             className="size-full object-cover"
@@ -284,21 +296,28 @@ function DocCard({
             {extension(doc.name)}
           </span>
         )}
-      </a>
+        {doc.uploading && (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-medium">
+            <span className="animate-pulse">Subiendo…</span>
+          </span>
+        )}
+      </button>
       <div className="px-3 py-2">
         <p className="truncate text-sm font-medium" title={doc.name}>
           {doc.name}
         </p>
         <p className="text-xs opacity-60">{formatSize(doc.size)}</p>
       </div>
-      <button
-        onClick={() => onRemove(doc.id)}
-        aria-label={`Eliminar ${doc.name}`}
-        // Sin hover en touch: el botón siempre está visible.
-        className="absolute top-2 right-2 hidden size-6 items-center justify-center rounded-full bg-black/50 text-sm group-hover:flex hover:bg-black/70 pointer-coarse:flex pointer-coarse:size-8"
-      >
-        ×
-      </button>
+      {!doc.uploading && (
+        <button
+          onClick={() => onRemove(doc.id)}
+          aria-label={`Eliminar ${doc.name}`}
+          // Sin hover en touch: el botón siempre está visible.
+          className="absolute top-2 right-2 hidden size-6 items-center justify-center rounded-full bg-black/50 text-sm group-hover:flex hover:bg-black/70 pointer-coarse:flex pointer-coarse:size-8"
+        >
+          ×
+        </button>
+      )}
       <TouchDragGhost show={dragging} label={doc.name} x={x} y={y} />
     </li>
   );

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { supabaseKey, supabaseUrl } from "./env";
+import { DB_SCHEMA } from "./schema";
 
 /**
  * Cliente de Supabase para Server Components, Server Actions y Route
@@ -11,7 +12,7 @@ export async function createClient() {
 
   return createServerClient(supabaseUrl(), supabaseKey(), {
     // Las tablas de la app viven en este esquema, no en `public`.
-    db: { schema: "document_organizer" },
+    db: { schema: DB_SCHEMA },
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll(cookiesToSet) {
