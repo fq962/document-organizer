@@ -83,6 +83,8 @@ export function Organizer({
         onMoveDoc={store.moveDoc}
         onOpenDoc={store.openDoc}
         onOpenFolders={() => setDrawerOpen(true)}
+        onShareFolder={store.shareFolder}
+        onUnshareFolder={store.unshareFolder}
       />
 
       <AnimatePresence>

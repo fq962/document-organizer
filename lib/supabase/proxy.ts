@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseKey, supabaseUrl } from "./env";
 
-/** Rutas accesibles sin sesión. */
-const PUBLIC_PATHS = ["/login", "/auth"];
+/** Rutas accesibles sin sesión ("/s": carpetas compartidas por enlace). */
+const PUBLIC_PATHS = ["/login", "/auth", "/s"];
 
 /**
  * Refresca la sesión de Supabase en cada request (los Server Components no

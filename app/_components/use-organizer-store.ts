@@ -148,6 +148,7 @@ export function useOrganizerStore({
         parentId,
         hue: hueFor(current, parentId, hue),
         isRoot: false,
+        shareCode: null,
       };
       // Inmediato, por si se crea otra antes del siguiente render.
       foldersRef.current = [...current, folder];
@@ -363,6 +364,51 @@ export function useOrganizerStore({
     [supabase],
   );
 
+  /** Devuelve el código del enlace de la carpeta, creándolo si hace falta. */
+  const shareFolder = useCallback(
+    async (id: string) => {
+      const existing = foldersRef.current.find((f) => f.id === id)?.shareCode;
+      if (existing) return existing;
+      if (!(await created(id))) return null;
+
+      const { data, error } = await supabase.rpc("share_folder", {
+        p_folder_id: id,
+      });
+      if (error || typeof data !== "string") {
+        setError(
+          `No se pudo crear el enlace: ${error ? describe(error) : "respuesta inválida"}`,
+        );
+        return null;
+      }
+      setFolders((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, shareCode: data } : f)),
+      );
+      return data;
+    },
+    [supabase],
+  );
+
+  const unshareFolder = useCallback(
+    async (id: string) => {
+      const before = foldersRef.current.find((f) => f.id === id)?.shareCode;
+      if (!before) return;
+      const restore = (shareCode: string | null) =>
+        setFolders((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, shareCode } : f)),
+        );
+      restore(null);
+
+      const { error } = await supabase
+        .from("folder_shares")
+        .delete()
+        .eq("folder_id", id);
+      if (!error) return;
+      restore(before);
+      setError(`No se pudo dejar de compartir: ${describe(error)}`);
+    },
+    [supabase],
+  );
+
   return {
     folders,
     docs,
@@ -375,6 +421,8 @@ export function useOrganizerStore({
     moveDoc,
     removeDoc,
     openDoc,
+    shareFolder,
+    unshareFolder,
   };
 }
 

@@ -2,8 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import {
   DOCUMENT_COLUMNS,
   FOLDER_COLUMNS,
+  FOLDER_SHARE_COLUMNS,
   type DocumentRow,
   type FolderRow,
+  type FolderShareRow,
 } from "@/lib/supabase/schema";
 import type { Doc, Folder } from "@/app/_components/types";
 
@@ -13,13 +15,17 @@ export type OrganizerData = {
   docs: Doc[];
 };
 
-export function folderFromRow(row: FolderRow): Folder {
+export function folderFromRow(
+  row: FolderRow,
+  shareCode: string | null = null,
+): Folder {
   return {
     id: row.id,
     name: row.name,
     parentId: row.parent_id,
     hue: row.hue,
     isRoot: row.is_root,
+    shareCode,
   };
 }
 
@@ -41,15 +47,16 @@ export function docFromRow(row: DocumentRow): Doc {
  */
 export async function getOrganizerData(): Promise<OrganizerData> {
   const supabase = await createClient();
-  const [folders, documents] = await Promise.all([
+  const [folders, documents, shares] = await Promise.all([
     supabase.from("folders").select(FOLDER_COLUMNS).order("created_at"),
     supabase
       .from("documents")
       .select(DOCUMENT_COLUMNS)
       .order("created_at", { ascending: false }),
+    supabase.from("folder_shares").select(FOLDER_SHARE_COLUMNS),
   ]);
 
-  const error = folders.error ?? documents.error;
+  const error = folders.error ?? documents.error ?? shares.error;
   if (error) {
     // Error típico: el esquema no está en Project Settings → Data API →
     // Exposed schemas, o la migración no se corrió.
@@ -74,9 +81,15 @@ export async function getOrganizerData(): Promise<OrganizerData> {
     throw new Error("No se encontró tu carpeta raíz «documentos».");
   }
 
+  const shareCodes = new Map(
+    (shares.data as FolderShareRow[]).map((s) => [s.folder_id, s.code]),
+  );
+
   return {
     rootId: root.id,
-    folders: folderRows.map(folderFromRow),
+    folders: folderRows.map((row) =>
+      folderFromRow(row, shareCodes.get(row.id) ?? null),
+    ),
     docs: (documents.data as DocumentRow[]).map(docFromRow),
   };
 }

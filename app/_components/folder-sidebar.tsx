@@ -11,6 +11,7 @@ import {
 } from "./touch-drag";
 import type { CurrentUser } from "@/lib/auth";
 import { DOC_DRAG_TYPE, splitName, type Doc, type Folder } from "./types";
+import { LinkIcon } from "./share-folder";
 import { UserMenu } from "./user-menu";
 
 type Props = {
@@ -390,6 +391,13 @@ const FolderNode = memo(function FolderNode(props: NodeProps) {
           ) : (
             <span className="truncate" title={folder.name}>
               {folder.name}
+            </span>
+          )}
+
+          {folder.shareCode && (
+            <span title="Compartida por enlace" className="shrink-0 opacity-75">
+              <LinkIcon className="size-3.5" />
+              <span className="sr-only">(compartida)</span>
             </span>
           )}
 

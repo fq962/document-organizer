@@ -1,9 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ShareFolderButton } from "./share-folder";
 import { FOLDER_ATTR, TouchDragGhost, useTouchDocDrag } from "./touch-drag";
 import { useImagePreviews } from "./use-organizer-store";
-import { DOC_DRAG_TYPE, splitName, type Doc, type Folder } from "./types";
+import {
+  DOC_DRAG_TYPE,
+  extension,
+  formatSize,
+  type Doc,
+  type Folder,
+} from "./types";
 
 type Props = {
   folder: Folder;
@@ -15,18 +22,9 @@ type Props = {
   onMoveDoc: (docId: string, folderId: string) => void;
   onOpenDoc: (doc: Doc) => void;
   onOpenFolders: () => void;
+  onShareFolder: (id: string) => Promise<string | null>;
+  onUnshareFolder: (id: string) => void;
 };
-
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
-}
-
-function extension(name: string) {
-  const { ext } = splitName(name);
-  return ext ? ext.toUpperCase().slice(0, 4) : "FILE";
-}
 
 // Resalta destinos de documentos tanto con el drag nativo (mouse) como con el
 // arrastre táctil, que marca el destino con `data-drop-target`.
@@ -69,6 +67,8 @@ export function DropArea({
   onMoveDoc,
   onOpenDoc,
   onOpenFolders,
+  onShareFolder,
+  onUnshareFolder,
 }: Props) {
   const previewUrl = useImagePreviews(docs);
   // Contador para que el overlay no parpadee al pasar sobre elementos hijos.
@@ -157,6 +157,11 @@ export function DropArea({
             </span>
           ))}
         </nav>
+        <ShareFolderButton
+          folder={folder}
+          onShare={onShareFolder}
+          onUnshare={onUnshareFolder}
+        />
         <button
           onClick={pickFiles}
           aria-label="Subir archivos"
