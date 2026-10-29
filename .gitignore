@@ -41,5 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# scripts SQL de mantenimiento (locales)
+# SQL de Supabase (local, no se versiona)
 /supabase/scripts/
+/supabase/migrations/

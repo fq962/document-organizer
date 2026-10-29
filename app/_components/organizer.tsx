@@ -80,6 +80,7 @@ export function Organizer({
         onSelectFolder={setSelectedId}
         onAddFiles={store.addFiles}
         onRemoveDoc={store.removeDoc}
+        onRenameDoc={store.renameDoc}
         onMoveDoc={store.moveDoc}
         onOpenDoc={store.openDoc}
         onOpenFolders={() => setDrawerOpen(true)}

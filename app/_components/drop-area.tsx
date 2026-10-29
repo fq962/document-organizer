@@ -8,6 +8,7 @@ import {
   DOC_DRAG_TYPE,
   extension,
   formatSize,
+  splitName,
   type Doc,
   type Folder,
 } from "./types";
@@ -19,6 +20,7 @@ type Props = {
   onSelectFolder: (id: string) => void;
   onAddFiles: (files: FileList, folderId: string) => void;
   onRemoveDoc: (id: string) => void;
+  onRenameDoc: (id: string, name: string) => void;
   onMoveDoc: (docId: string, folderId: string) => void;
   onOpenDoc: (doc: Doc) => void;
   onOpenFolders: () => void;
@@ -64,6 +66,7 @@ export function DropArea({
   onSelectFolder,
   onAddFiles,
   onRemoveDoc,
+  onRenameDoc,
   onMoveDoc,
   onOpenDoc,
   onOpenFolders,
@@ -226,6 +229,7 @@ export function DropArea({
                 key={doc.id}
                 doc={doc}
                 onRemove={onRemoveDoc}
+                onRename={onRenameDoc}
                 onMove={onMoveDoc}
                 onOpen={onOpenDoc}
                 previewUrl={previewUrl(doc)}
@@ -249,12 +253,14 @@ export function DropArea({
 function DocCard({
   doc,
   onRemove,
+  onRename,
   onMove,
   onOpen,
   previewUrl,
 }: {
   doc: Doc;
   onRemove: (id: string) => void;
+  onRename: (id: string, name: string) => void;
   onMove: (docId: string, folderId: string) => void;
   onOpen: (doc: Doc) => void;
   previewUrl: string | undefined;
@@ -263,15 +269,19 @@ function DocCard({
     doc.id,
     onMove,
   );
+  const [editing, setEditing] = useState(false);
+  // Mientras se sube no existe en la base: no se puede mover, renombrar ni
+  // borrar. Mientras se renombra tampoco se arrastra (el input necesita los
+  // gestos del puntero para seleccionar texto).
+  const busy = doc.uploading || editing;
 
   return (
     <li
       ref={ref as React.RefObject<HTMLLIElement>}
-      {...handlers}
-      // Mientras se sube no existe en la base: no se puede mover ni borrar.
-      draggable={!doc.uploading}
+      {...(editing ? {} : handlers)}
+      draggable={!busy}
       onDragStart={(e) => {
-        if (isActive() || doc.uploading) return e.preventDefault();
+        if (isActive() || busy) return e.preventDefault();
         e.dataTransfer.setData(DOC_DRAG_TYPE, doc.id);
         e.dataTransfer.effectAllowed = "move";
       }}
@@ -308,22 +318,85 @@ function DocCard({
         )}
       </button>
       <div className="px-3 py-2">
-        <p className="truncate text-sm font-medium" title={doc.name}>
-          {doc.name}
-        </p>
+        {editing ? (
+          <input
+            autoFocus
+            defaultValue={doc.name}
+            aria-label={`Nuevo nombre para ${doc.name}`}
+            // Selecciona solo el nombre, sin la extensión, como un explorador
+            // de archivos.
+            onFocus={(e) =>
+              e.currentTarget.setSelectionRange(
+                0,
+                splitName(doc.name).base.length,
+              )
+            }
+            onBlur={(e) => {
+              const name = e.currentTarget.value.trim();
+              if (name) onRename(doc.id, name);
+              setEditing(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                // Restaura el valor para que el blur no lo guarde.
+                e.currentTarget.value = doc.name;
+                e.currentTarget.blur();
+              }
+            }}
+            maxLength={255}
+            className="-mx-1 w-[calc(100%+0.5rem)] rounded-md bg-black/30 px-1 text-sm font-medium outline-none select-text"
+          />
+        ) : (
+          <p
+            onDoubleClick={() => !doc.uploading && setEditing(true)}
+            className="truncate text-sm font-medium"
+            title={doc.name}
+          >
+            {doc.name}
+          </p>
+        )}
         <p className="text-xs opacity-60">{formatSize(doc.size)}</p>
       </div>
-      {!doc.uploading && (
-        <button
-          onClick={() => onRemove(doc.id)}
-          aria-label={`Eliminar ${doc.name}`}
-          // Sin hover en touch: el botón siempre está visible.
-          className="absolute top-2 right-2 hidden size-6 items-center justify-center rounded-full bg-black/50 text-sm group-hover:flex hover:bg-black/70 pointer-coarse:flex pointer-coarse:size-8"
-        >
-          ×
-        </button>
+      {!busy && (
+        // Sin hover en touch: los botones siempre están visibles.
+        <div className="absolute top-2 right-2 hidden gap-1 group-hover:flex pointer-coarse:flex">
+          <CardAction
+            label={`Renombrar ${doc.name}`}
+            onClick={() => setEditing(true)}
+          >
+            ✎
+          </CardAction>
+          <CardAction
+            label={`Eliminar ${doc.name}`}
+            onClick={() => onRemove(doc.id)}
+          >
+            ×
+          </CardAction>
+        </div>
       )}
       <TouchDragGhost show={dragging} label={doc.name} x={x} y={y} />
     </li>
+  );
+}
+
+function CardAction({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className="flex size-6 items-center justify-center rounded-full bg-black/50 text-sm hover:bg-black/70 pointer-coarse:size-8"
+    >
+      {children}
+    </button>
   );
 }

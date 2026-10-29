@@ -47,7 +47,9 @@ export function ShareFolderButton({
         aria-label="Compartir carpeta"
         aria-expanded={open}
         className={`flex h-11 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition @xl:h-auto @xl:py-2 ${
-          shared ? "bg-white/20 hover:bg-white/30" : "bg-white/10 hover:bg-white/20"
+          shared
+            ? "bg-white/20 hover:bg-white/30"
+            : "bg-white/10 hover:bg-white/20"
         }`}
       >
         <LinkIcon className="size-4" />

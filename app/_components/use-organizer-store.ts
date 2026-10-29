@@ -317,6 +317,28 @@ export function useOrganizerStore({
     [supabase],
   );
 
+  const renameDoc = useCallback(
+    async (docId: string, name: string) => {
+      const doc = docsRef.current.find((d) => d.id === docId);
+      if (!doc || doc.uploading || doc.name === name) return;
+      const setName = (name: string) =>
+        setDocs((prev) =>
+          prev.map((d) => (d.id === docId ? { ...d, name } : d)),
+        );
+      setName(name);
+
+      // Solo cambia el nombre visible: la ruta en Storage no depende de él.
+      const { error } = await supabase
+        .from("documents")
+        .update({ name })
+        .eq("id", docId);
+      if (!error) return;
+      setName(doc.name);
+      setError(`No se pudo renombrar “${doc.name}”: ${describe(error)}`);
+    },
+    [supabase],
+  );
+
   const removeDoc = useCallback(
     async (docId: string) => {
       const doc = docsRef.current.find((d) => d.id === docId);
@@ -419,6 +441,7 @@ export function useOrganizerStore({
     deleteFolder,
     addFiles,
     moveDoc,
+    renameDoc,
     removeDoc,
     openDoc,
     shareFolder,
