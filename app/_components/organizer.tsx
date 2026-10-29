@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { X } from "lucide-react";
 import { FolderSidebar } from "./folder-sidebar";
 import { DropArea } from "./drop-area";
 import { useOrganizerStore } from "./use-organizer-store";
@@ -105,7 +106,7 @@ export function Organizer({
               aria-label="Cerrar"
               className="-m-1 rounded-full p-1 leading-none opacity-70 hover:opacity-100"
             >
-              ×
+              <X className="size-4" aria-hidden />
             </button>
           </motion.div>
         )}

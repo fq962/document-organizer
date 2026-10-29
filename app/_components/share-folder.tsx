@@ -2,27 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { Link2 } from "lucide-react";
 import { sharePath, type Folder } from "./types";
 
 const COPIED_MS = 2000;
-
-export function LinkIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" />
-      <path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" />
-    </svg>
-  );
-}
 
 /**
  * Botón "Compartir" del encabezado. Abre un panel para crear el enlace corto
@@ -52,7 +35,7 @@ export function ShareFolderButton({
             : "bg-white/10 hover:bg-white/20"
         }`}
       >
-        <LinkIcon className="size-4" />
+        <Link2 className="size-4" aria-hidden />
         <span className="hidden @md:inline">
           {shared ? "Compartida" : "Compartir"}
         </span>

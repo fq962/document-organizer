@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Menu, Pencil, Plus, X } from "lucide-react";
 import { ShareFolderButton } from "./share-folder";
 import { FOLDER_ATTR, TouchDragGhost, useTouchDocDrag } from "./touch-drag";
 import { useImagePreviews } from "./use-organizer-store";
@@ -126,17 +127,7 @@ export function DropArea({
           aria-label="Abrir carpetas"
           className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10 md:hidden"
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="size-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden
-          >
-            <path d="M4 7h16M4 12h16M4 17h10" />
-          </svg>
+          <Menu className="size-6" aria-hidden />
         </button>
         <nav className="flex min-w-0 flex-1 items-center gap-1 text-sm">
           {path.map((f, i) => (
@@ -173,9 +164,7 @@ export function DropArea({
           aria-label="Subir archivos"
           className="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-white/90 px-4 text-sm font-medium text-[#3a4230] transition hover:bg-white @xl:h-auto @xl:py-2"
         >
-          <span aria-hidden className="text-lg leading-none">
-            +
-          </span>
+          <Plus className="size-4" strokeWidth={2.5} aria-hidden />
           <span className="hidden @md:inline">Subir archivos</span>
         </button>
         <input
@@ -368,13 +357,13 @@ function DocCard({
             label={`Renombrar ${doc.name}`}
             onClick={() => setEditing(true)}
           >
-            ✎
+            <Pencil className="size-3.5" aria-hidden />
           </CardAction>
           <CardAction
             label={`Eliminar ${doc.name}`}
             onClick={() => onRemove(doc.id)}
           >
-            ×
+            <X className="size-3.5" aria-hidden />
           </CardAction>
         </div>
       )}

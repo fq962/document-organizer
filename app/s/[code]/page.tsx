@@ -2,9 +2,9 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Link2 } from "lucide-react";
 import { connection } from "next/server";
 import { getSharedFolder, signSharedDocs } from "@/lib/shared-folder";
-import { LinkIcon } from "@/app/_components/share-folder";
 import { extension, formatSize, sharePath } from "@/app/_components/types";
 
 // Las miniaturas se firman al renderizar; abrir un documento firma de nuevo.
@@ -38,7 +38,7 @@ async function SharedFolder({ params, searchParams }: PageProps<"/s/[code]">) {
     (typeof f === "string" && byId.get(f)) || byId.get(share.rootId)!;
 
   const path: (typeof folder)[] = [];
-  for (let p: typeof folder | undefined = folder; p; ) {
+  for (let p: typeof folder | undefined = folder; p;) {
     path.unshift(p);
     p = p.parentId ? byId.get(p.parentId) : undefined;
   }
@@ -80,7 +80,7 @@ async function SharedFolder({ params, searchParams }: PageProps<"/s/[code]">) {
           ))}
         </nav>
         <p className="flex items-center gap-1.5 text-xs opacity-60">
-          <LinkIcon className="size-3.5" />
+          <Link2 className="size-3.5" aria-hidden />
           {share.ownerName
             ? `Compartida por ${share.ownerName} · solo lectura`
             : "Carpeta compartida · solo lectura"}
