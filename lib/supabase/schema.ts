@@ -11,6 +11,7 @@ export type FolderRow = {
   name: string;
   hue: number;
   is_root: boolean;
+  pinned_at: string | null;
 };
 
 export type DocumentRow = {
@@ -32,11 +33,11 @@ export type FolderShareRow = {
 export type SharedFolderPayload = {
   root_id: string;
   owner_name: string | null;
-  folders: Omit<FolderRow, "is_root">[];
+  folders: Omit<FolderRow, "is_root" | "pinned_at">[];
   documents: DocumentRow[];
 };
 
-export const FOLDER_COLUMNS = "id, parent_id, name, hue, is_root";
+export const FOLDER_COLUMNS = "id, parent_id, name, hue, is_root, pinned_at";
 export const DOCUMENT_COLUMNS =
   "id, folder_id, name, mime_type, size_bytes, storage_path, created_at";
 export const FOLDER_SHARE_COLUMNS = "folder_id, code";

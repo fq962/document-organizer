@@ -25,6 +25,7 @@ export function folderFromRow(
     parentId: row.parent_id,
     hue: row.hue,
     isRoot: row.is_root,
+    pinnedAt: row.pinned_at ? new Date(row.pinned_at).getTime() : null,
     shareCode,
   };
 }

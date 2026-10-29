@@ -148,6 +148,7 @@ export function useOrganizerStore({
         parentId,
         hue: hueFor(current, parentId, hue),
         isRoot: false,
+        pinnedAt: null,
         shareCode: null,
       };
       // Inmediato, por si se crea otra antes del siguiente render.
@@ -386,6 +387,33 @@ export function useOrganizerStore({
     [supabase],
   );
 
+  const togglePin = useCallback(
+    async (id: string) => {
+      const before = foldersRef.current.find((f) => f.id === id);
+      if (!before || before.isRoot) return;
+      const pinnedAt = before.pinnedAt ? null : Date.now();
+      const setPinnedAt = (pinnedAt: number | null) =>
+        setFolders((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, pinnedAt } : f)),
+        );
+      setPinnedAt(pinnedAt);
+
+      if (!(await created(id))) return;
+      const { error } = await supabase
+        .from("folders")
+        .update({
+          pinned_at: pinnedAt ? new Date(pinnedAt).toISOString() : null,
+        })
+        .eq("id", id);
+      if (!error) return;
+      setPinnedAt(before.pinnedAt);
+      setError(
+        `No se pudo ${pinnedAt ? "fijar" : "desfijar"} la carpeta: ${describe(error)}`,
+      );
+    },
+    [supabase],
+  );
+
   /** Devuelve el código del enlace de la carpeta, creándolo si hace falta. */
   const shareFolder = useCallback(
     async (id: string) => {
@@ -439,6 +467,7 @@ export function useOrganizerStore({
     createFolder,
     renameFolder,
     deleteFolder,
+    togglePin,
     addFiles,
     moveDoc,
     renameDoc,

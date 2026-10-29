@@ -10,7 +10,13 @@ import {
   useTouchDocDrag,
 } from "./touch-drag";
 import type { CurrentUser } from "@/lib/auth";
-import { DOC_DRAG_TYPE, splitName, type Doc, type Folder } from "./types";
+import {
+  byPinned,
+  DOC_DRAG_TYPE,
+  splitName,
+  type Doc,
+  type Folder,
+} from "./types";
 import { LinkIcon } from "./share-folder";
 import { UserMenu } from "./user-menu";
 
@@ -23,6 +29,7 @@ type Props = {
   onCreate: (parentId: string, hue?: number) => string;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  onTogglePin: (id: string) => void;
   onDropFiles: (files: FileList, folderId: string) => void;
   onMoveDoc: (docId: string, folderId: string) => void;
 };
@@ -136,6 +143,7 @@ export function FolderSidebar({
       if (list) list.push(f);
       else map.set(f.parentId, [f]);
     }
+    for (const list of map.values()) list.sort(byPinned);
     return map;
   }, [folders]);
 
@@ -394,6 +402,19 @@ const FolderNode = memo(function FolderNode(props: NodeProps) {
             </span>
           )}
 
+          {folder.pinnedAt && (
+            // Mientras se ven las acciones, el botón de desfijar ya lo indica.
+            <span
+              title="Fijada"
+              className={`shrink-0 opacity-75 group-hover:hidden ${
+                isSelected ? "pointer-coarse:hidden" : ""
+              }`}
+            >
+              <PinIcon filled className="size-3.5" />
+              <span className="sr-only">(fijada)</span>
+            </span>
+          )}
+
           {folder.shareCode && (
             <span title="Compartida por enlace" className="shrink-0 opacity-75">
               <LinkIcon className="size-3.5" />
@@ -415,6 +436,14 @@ const FolderNode = memo(function FolderNode(props: NodeProps) {
                 isSelected ? "pointer-coarse:inline-flex" : ""
               }`}
             >
+              {depth > 0 && (
+                <BubbleAction
+                  label={folder.pinnedAt ? "Desfijar" : "Fijar"}
+                  onClick={() => props.onTogglePin(folder.id)}
+                >
+                  <PinIcon filled={Boolean(folder.pinnedAt)} />
+                </BubbleAction>
+              )}
               <BubbleAction
                 label="Subcarpeta"
                 onClick={() => props.onCreateChild(folder.id)}
@@ -484,6 +513,30 @@ const FolderNode = memo(function FolderNode(props: NodeProps) {
     </div>
   );
 });
+
+function PinIcon({
+  filled = false,
+  className = "size-4",
+}: {
+  filled?: boolean;
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 17v5" />
+      <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+    </svg>
+  );
+}
 
 function BubbleAction({
   label,

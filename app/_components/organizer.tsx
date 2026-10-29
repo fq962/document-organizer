@@ -67,6 +67,7 @@ export function Organizer({
         onCreate={store.createFolder}
         onRename={store.renameFolder}
         onDelete={store.deleteFolder}
+        onTogglePin={store.togglePin}
         onDropFiles={store.addFiles}
         onMoveDoc={store.moveDoc}
         user={user}

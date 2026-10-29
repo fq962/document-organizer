@@ -5,6 +5,7 @@ import { ShareFolderButton } from "./share-folder";
 import { FOLDER_ATTR, TouchDragGhost, useTouchDocDrag } from "./touch-drag";
 import { useImagePreviews } from "./use-organizer-store";
 import {
+  byPinned,
   DOC_DRAG_TYPE,
   extension,
   formatSize,
@@ -89,7 +90,9 @@ export function DropArea({
     path.unshift(f);
     f = folders.find((p) => p.id === f!.parentId);
   }
-  const subfolders = folders.filter((f) => f.parentId === folder.id);
+  const subfolders = folders
+    .filter((f) => f.parentId === folder.id)
+    .sort(byPinned);
 
   return (
     <section

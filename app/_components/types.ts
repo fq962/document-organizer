@@ -4,6 +4,8 @@ export type Folder = {
   parentId: string | null;
   hue: number;
   isRoot: boolean;
+  /** Cuándo se fijó (ms epoch) para el acceso rápido; null si no está fijada. */
+  pinnedAt: number | null;
   /** Código del enlace público ("/s/<code>") si la carpeta está compartida. */
   shareCode: string | null;
 };
@@ -22,6 +24,15 @@ export type Doc = {
   /** Vista previa local (object URL) de archivos subidos en esta sesión. */
   localUrl?: string;
 };
+
+/**
+ * Orden de carpetas hermanas: las fijadas suben al principio (en el orden en
+ * que se fijaron); el resto conserva su orden original. `sort` es estable.
+ */
+export function byPinned(a: Folder, b: Folder) {
+  if (a.pinnedAt && b.pinnedAt) return a.pinnedAt - b.pinnedAt;
+  return (b.pinnedAt ? 1 : 0) - (a.pinnedAt ? 1 : 0);
+}
 
 // Tipo MIME usado para arrastrar documentos internos entre carpetas,
 // distinto de "Files" que es el que usa el sistema operativo.
